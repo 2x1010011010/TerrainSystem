@@ -1,4 +1,7 @@
+using System.Collections;
+using System.Collections.Generic;
 using TerrainSystem.Runtime.Data;
+using TerrainSystem.Runtime.Generation;
 using UnityEngine;
 
 namespace TerrainSystem.Runtime.Rendering
@@ -7,149 +10,217 @@ namespace TerrainSystem.Runtime.Rendering
   {
     [SerializeField] private TerrainDataAsset terrainData;
 
-    public void SetTerrainData(TerrainDataAsset data) => 
+    private readonly Dictionary<Vector2Int, TerrainChunkRenderer> chunks
+      = new();
+
+    private readonly HashSet<Vector2Int> dirtyChunks
+      = new();
+
+    private Coroutine generationRoutine;
+
+    #region PUBLIC API
+
+    public void SetTerrainData(TerrainDataAsset data)
+    {
       terrainData = data;
+    }
+
+    public TerrainDataAsset TerrainData => terrainData;
 
     public void Generate()
     {
-      Clear();
+      if (terrainData == null)
+        return;
 
-      for (int z = 0; z < terrainData.ChunksZ; z++)
-      {
-        for (int x = 0; x < terrainData.ChunksX; x++)
-        {
-          ChunkData chunk =
-            GetOrCreateChunk(x, z);
+      StopGeneration();
 
-          CreateChunkRenderer(chunk);
-        }
-      }
+      MarkAllChunksDirty();
+      generationRoutine = StartCoroutine(GenerateAllChunks());
     }
 
-    private ChunkData GetOrCreateChunk(int x, int z)
+    public void RegenerateChunk(Vector2Int coord)
     {
-      foreach (var chunk in terrainData.Chunks)
-      {
-        if (chunk.Coordinate.x == x &&
-            chunk.Coordinate.y == z)
-        {
-          return chunk;
-        }
-      }
+      if (!chunks.ContainsKey(coord))
+        return;
 
-      ChunkData newChunk =
-        CreateChunkData(x, z);
+      if (generationRoutine != null)
+        StopCoroutine(generationRoutine);
 
-      terrainData.Chunks.Add(newChunk);
-
-      return newChunk;
-    }
-
-    private ChunkData CreateChunkData(int chunkX, int chunkZ)
-    {
-      int resolution =
-        terrainData.ChunkResolution;
-
-      ChunkData chunk = new ChunkData();
-
-      chunk.Coordinate =
-        new Vector2Int(chunkX, chunkZ);
-
-      int mapSize =
-        (resolution + 1) * (resolution + 1);
-
-      chunk.Heights =
-        new float[mapSize];
-
-      chunk.SplatMap =
-        new Color[mapSize];
-
-      chunk.BiomeMap =
-        new int[mapSize];
-
-      chunk.WaterMap =
-        new bool[mapSize];
-
-      for (int z = 0; z <= resolution; z++)
-      {
-        for (int x = 0; x <= resolution; x++)
-        {
-          int index =
-            TerrainMapUtility.ToIndex(
-              x,
-              z,
-              resolution
-            );
-
-          float worldX =
-            x +
-            chunkX * resolution;
-
-          float worldZ =
-            z +
-            chunkZ * resolution;
-
-          float noise =
-            Mathf.PerlinNoise(
-              (worldX + terrainData.Seed)
-              * terrainData.NoiseScale,
-              (worldZ + terrainData.Seed)
-              * terrainData.NoiseScale
-            );
-
-          chunk.Heights[index] =
-            noise *
-            terrainData.HeightMultiplier;
-
-          chunk.SplatMap[index] =
-            Color.red;
-
-          chunk.BiomeMap[index] = 0;
-          chunk.WaterMap[index] = false;
-        }
-      }
-
-      return chunk;
-    }
-
-    private void CreateChunkRenderer(
-      ChunkData chunkData
-    )
-    {
-      GameObject chunkObject =
-        new GameObject(
-          $"Chunk_{chunkData.Coordinate.x}_{chunkData.Coordinate.y}"
-        );
-
-      chunkObject.transform.SetParent(transform);
-
-      float chunkSize =
-        terrainData.ChunkSize;
-
-      chunkObject.transform.position =
-        new Vector3(
-          chunkData.Coordinate.x * chunkSize,
-          0,
-          chunkData.Coordinate.y * chunkSize
-        );
-
-      TerrainChunkRenderer renderer =
-        chunkObject.AddComponent<TerrainChunkRenderer>();
-
-      renderer.Build(
-        chunkData,
-        terrainData
-      );
+      generationRoutine = StartCoroutine(GenerateChunk(coord));
     }
 
     public void Clear()
     {
-      for (int i = transform.childCount - 1; i >= 0; i--)
+      foreach (var c in chunks.Values)
       {
-        DestroyImmediate(
-          transform.GetChild(i).gameObject
-        );
+        if (c != null)
+          DestroyImmediate(c.gameObject);
+      }
+
+      chunks.Clear();
+      dirtyChunks.Clear();
+    }
+
+    #endregion
+
+    #region GENERATION
+
+    private IEnumerator GenerateAllChunks()
+    {
+      for (int z = 0; z < terrainData.ChunksZ; z++)
+      {
+        for (int x = 0; x < terrainData.ChunksX; x++)
+        {
+          Vector2Int coord = new Vector2Int(x, z);
+
+          yield return GenerateChunk(coord);
+        }
       }
     }
+
+    private IEnumerator GenerateChunk(Vector2Int coord)
+    {
+      ChunkData data = GetOrCreateChunkData(coord);
+
+      TerrainChunkRenderer renderer = GetOrCreateRenderer(coord, data);
+
+      int res = terrainData.ChunkResolution;
+
+      for (int z = 0; z <= res; z++)
+      {
+        for (int x = 0; x <= res; x++)
+        {
+          int index = ToIndex(x, z, res);
+
+          float worldX = x + coord.x * res;
+          float worldZ = z + coord.y * res;
+
+          float height =
+            TerrainNoiseGenerator.GenerateHeight(
+              worldX,
+              worldZ,
+              terrainData.NoiseScale,
+              terrainData.HeightMultiplier,
+              terrainData.Seed,
+              terrainData.HeightCurve
+            );
+
+          data.Heights[index] = height;
+        }
+
+        if (z % 4 == 0)
+          yield return null; // 💡 avoids editor freeze
+      }
+
+      renderer.Build(data, terrainData);
+    }
+
+    #endregion
+
+    #region CHUNK DATA
+
+    private ChunkData GetOrCreateChunkData(Vector2Int coord)
+    {
+      foreach (var c in terrainData.Chunks)
+      {
+        if (c.Coordinate == coord)
+          return c;
+      }
+
+      ChunkData chunk = CreateChunk(coord);
+      terrainData.Chunks.Add(chunk);
+
+      return chunk;
+    }
+
+    private ChunkData CreateChunk(Vector2Int coord)
+    {
+      int res = terrainData.ChunkResolution;
+
+      int size = (res + 1) * (res + 1);
+
+      return new ChunkData
+      {
+        Coordinate = coord,
+        Heights = new float[size],
+        SplatMap = new Color[size],
+        BiomeMap = new int[size],
+        WaterMap = new bool[size]
+      };
+    }
+
+    #endregion
+
+    #region RENDERERS
+
+    private TerrainChunkRenderer GetOrCreateRenderer(
+      Vector2Int coord,
+      ChunkData data)
+    {
+      if (chunks.TryGetValue(coord, out var existing))
+        return existing;
+
+      GameObject go = new GameObject($"Chunk_{coord.x}_{coord.y}");
+      go.transform.SetParent(transform);
+
+      go.transform.position = new Vector3(
+        coord.x * terrainData.ChunkSize,
+        0,
+        coord.y * terrainData.ChunkSize
+      );
+
+      var renderer = go.AddComponent<TerrainChunkRenderer>();
+
+      chunks.Add(coord, renderer);
+
+      return renderer;
+    }
+
+    #endregion
+
+    #region DIRTY SYSTEM
+
+    private void MarkAllChunksDirty()
+    {
+      dirtyChunks.Clear();
+
+      for (int z = 0; z < terrainData.ChunksZ; z++)
+      for (int x = 0; x < terrainData.ChunksX; x++)
+        dirtyChunks.Add(new Vector2Int(x, z));
+    }
+
+    #endregion
+
+    #region UTILS
+
+    private int ToIndex(int x, int z, int res)
+    {
+      return z * (res + 1) + x;
+    }
+
+    private void StopGeneration()
+    {
+      if (generationRoutine != null)
+      {
+        StopCoroutine(generationRoutine);
+        generationRoutine = null;
+      }
+    }
+
+    #endregion
+
+    #region UNITY EDITOR HOOK
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+      if (!Application.isPlaying && terrainData != null)
+      {
+        Generate();
+      }
+    }
+#endif
+
+    #endregion
   }
 }

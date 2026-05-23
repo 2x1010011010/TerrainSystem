@@ -19,9 +19,18 @@ namespace TerrainSystem.Runtime.Data
 
     [Header("Chunks")]
     public List<ChunkData> Chunks = new();
+    
+    [Header("Height Curve")]
+    public AnimationCurve HeightCurve =
+      AnimationCurve.EaseInOut(
+        0,
+        0,
+        1,
+        1
+      );
 
     public Material TerrainMaterial { get; set; }
-    public float Seed { get; set; }
+    public int Seed { get; set; }
     public float NoiseScale { get; set; }
   }
 }
