@@ -2,40 +2,32 @@ using UnityEngine;
 
 namespace TerrainSystem.Runtime.Data
 {
-  [CreateAssetMenu(
-    menuName = "Terrain/Terrain Data")]
-  public class TerrainDataAsset :
-    ScriptableObject
+  [CreateAssetMenu(menuName = "Terrain/Terrain Data")]
+  public class TerrainDataAsset : ScriptableObject
   {
-    [Header("World")] 
+    [Header("World")]
     public int ChunksX = 4;
     public int ChunksZ = 4;
-    
-    [Header("Peak Control")]
-    [Range(0f, 1f)]
-    public float PeakFlattenStrength = 0f;
-    public float PeakRadius = 10f;
 
-    [Header("Chunk")] 
+    [Header("Chunk")]
     public int ChunkResolution = 32;
-    public float ChunkSize = 16f;
+    public float ChunkSize = 20f;
 
-    [Header("Noise")] 
+    [Header("Noise")]
     public float NoiseScale = 0.03f;
     public float HeightMultiplier = 10f;
     public int Seed = 12345;
-    public AnimationCurve HeightCurve =
-      AnimationCurve.EaseInOut(
-        0,
-        0,
-        1,
-        1
-      );
-    
+
+    [Header("Peak Control")]
+    [Range(0f, 1f)]
+    public float PeakFlattenStrength = 0f;
+
+    public float PeakRadius = 10f;
+
     [Header("Rendering")]
     public Material TerrainMaterial;
-
-    [HideInInspector] public TerrainWorldData WorldData =
-      new();
+    
+    [Header("Shape")]
+    public AnimationCurve HeightCurve = AnimationCurve.Linear(0, 0, 1, 1);
   }
 }
