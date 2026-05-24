@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8b3720a6df3d484bba6c2ddb26a3138, type: 3}
+  m_Name: TerrainSettings
+  m_EditorClassIdentifier: Assembly-CSharp::TerrainSystem.TerrainSettings
+  chunkCount: {x: 4, y: 4}
+  chunkResolution: {x: 16, y: 16}
+  chunkSize: {x: 28.661684, y: 30.390926}
+  heightScale: 5
+  heightMultiplier: 0.01
+  noiseScale: 0.3
+  noiseSeed: 42
+  noiseOffset: {x: 0, y: 0}
+  octaves: 4
+  persistence: 0.5
+  lacunarity: 2
+  terrainMaterial: {fileID: 2100000, guid: ba29c41712cc7954cb229b1bcc8fcde9, type: 2}
