@@ -8,21 +8,18 @@ namespace TerrainSystem.Editor
   public class TerrainCustomEditor : UnityEditor.Editor
   {
     private TerrainEditorRoot root;
-    private int tab;
 
     private void OnEnable()
     {
       root = (TerrainEditorRoot)target;
 
       SceneView.duringSceneGui += OnSceneGUI;
-
       Tools.hidden = true;
     }
 
     private void OnDisable()
     {
       SceneView.duringSceneGui -= OnSceneGUI;
-
       Tools.hidden = false;
     }
 
@@ -30,10 +27,38 @@ namespace TerrainSystem.Editor
     {
       GUILayout.Label("Terrain Editor", EditorStyles.boldLabel);
 
-      root.TerrainData.ChunksX = EditorGUILayout.IntField("Chunks X", root.TerrainData.ChunksX);
-      root.TerrainData.ChunksZ = EditorGUILayout.IntField("Chunks Z", root.TerrainData.ChunksZ);
-      root.TerrainData.HeightMultiplier = EditorGUILayout.FloatField("Height", root.TerrainData.HeightMultiplier);
-      root.TerrainData.NoiseScale = EditorGUILayout.Slider("Noise", root.TerrainData.NoiseScale, 0.001f, 1f);
+      root.TerrainData.ChunksX =
+        EditorGUILayout.IntField("Chunks X", root.TerrainData.ChunksX);
+
+      root.TerrainData.ChunksZ =
+        EditorGUILayout.IntField("Chunks Z", root.TerrainData.ChunksZ);
+
+      root.TerrainData.HeightMultiplier =
+        EditorGUILayout.FloatField("Height", root.TerrainData.HeightMultiplier);
+
+      root.TerrainData.NoiseScale =
+        EditorGUILayout.Slider("Noise", root.TerrainData.NoiseScale, 0.001f, 1f);
+
+      GUILayout.Space(10);
+
+      // 🎯 NEW FEATURE
+      GUILayout.Label("Peak Control", EditorStyles.boldLabel);
+
+      root.TerrainData.PeakFlattenStrength =
+        EditorGUILayout.Slider(
+          "Flatten Peaks",
+          root.TerrainData.PeakFlattenStrength,
+          0f,
+          1f
+        );
+
+      root.TerrainData.PeakRadius =
+        EditorGUILayout.FloatField(
+          "Peak Radius",
+          root.TerrainData.PeakRadius
+        );
+
+      GUILayout.Space(10);
 
       if (GUILayout.Button("Regenerate"))
       {
@@ -76,7 +101,6 @@ namespace TerrainSystem.Editor
         root.TerrainData.HeightMultiplier = Mathf.Max(1f, scale.y);
 
         root.Regenerate();
-
         EditorUtility.SetDirty(root.TerrainData);
       }
     }

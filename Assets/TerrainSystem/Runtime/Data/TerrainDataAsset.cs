@@ -10,6 +10,11 @@ namespace TerrainSystem.Runtime.Data
     [Header("World")] 
     public int ChunksX = 4;
     public int ChunksZ = 4;
+    
+    [Header("Peak Control")]
+    [Range(0f, 1f)]
+    public float PeakFlattenStrength = 0f;
+    public float PeakRadius = 10f;
 
     [Header("Chunk")] 
     public int ChunkResolution = 32;

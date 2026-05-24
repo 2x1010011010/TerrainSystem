@@ -21,16 +21,9 @@ namespace TerrainSystem.Runtime.Generation
 
       for (int i = 0; i < 4; i++)
       {
-        float sample =
-          Mathf.PerlinNoise(
-            (x + data.Seed)
-            * frequency,
-            (z + data.Seed)
-            * frequency
-          );
+        float sample = Mathf.PerlinNoise((x + data.Seed) * frequency, (z + data.Seed) * frequency);
 
-        height +=
-          sample * amplitude;
+        height += sample * amplitude;
 
         total += amplitude;
 
@@ -40,14 +33,9 @@ namespace TerrainSystem.Runtime.Generation
       }
 
       height /= total;
-
-      height =
-        data.HeightCurve
-          .Evaluate(height);
-
-      return
-        height *
-        data.HeightMultiplier;
+      height = data.HeightCurve.Evaluate(height);
+      
+      return height * data.HeightMultiplier;
     }
   }
 }
