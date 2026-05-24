@@ -1,26 +1,24 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace TerrainSystem.Runtime.Data
 {
-  [CreateAssetMenu(menuName = "Terrain System/Terrain Data")]
-  public class TerrainDataAsset : ScriptableObject
+  [CreateAssetMenu(
+    menuName = "Terrain/Terrain Data")]
+  public class TerrainDataAsset :
+    ScriptableObject
   {
-    [Header("World Size")]
+    [Header("World")] 
     public int ChunksX = 4;
     public int ChunksZ = 4;
 
-    [Header("Chunk Settings")]
+    [Header("Chunk")] 
     public int ChunkResolution = 32;
-    public float ChunkSize = 20f;
+    public float ChunkSize = 16f;
 
-    [Header("Height")]
+    [Header("Noise")] 
+    public float NoiseScale = 0.03f;
     public float HeightMultiplier = 10f;
-
-    [Header("Chunks")]
-    public List<ChunkData> Chunks = new();
-    
-    [Header("Height Curve")]
+    public int Seed = 12345;
     public AnimationCurve HeightCurve =
       AnimationCurve.EaseInOut(
         0,
@@ -28,9 +26,11 @@ namespace TerrainSystem.Runtime.Data
         1,
         1
       );
+    
+    [Header("Rendering")]
+    public Material TerrainMaterial;
 
-    public Material TerrainMaterial { get; set; }
-    public int Seed { get; set; }
-    public float NoiseScale { get; set; }
+    [HideInInspector] public TerrainWorldData WorldData =
+      new();
   }
 }
